@@ -102,7 +102,7 @@ class RandomMultiviewCameraIterableDataset(RandomCameraIterableDataset):
         ).repeat_interleave(self.cfg.n_view, dim=0)
         if self.cfg.relative_radius:
             scale = 1 / torch.tan(0.5 * fovy)
-            camera_distances = scale * camera_distances
+            camera_distances *= scale
 
         # zoom in by decreasing fov after camera distance is fixed
         zoom: Float[Tensor, "B"] = (
@@ -111,7 +111,7 @@ class RandomMultiviewCameraIterableDataset(RandomCameraIterableDataset):
             + self.zoom_range[0]
         ).repeat_interleave(self.cfg.n_view, dim=0)
         fovy = fovy * zoom
-        fovy_deg = fovy_deg * zoom
+        fovy_deg *= zoom
         ###########################################
 
         # convert spherical coordinates to cartesian coordinates
@@ -138,17 +138,17 @@ class RandomMultiviewCameraIterableDataset(RandomCameraIterableDataset):
             torch.rand(real_batch_size, 3) * 2 * self.cfg.camera_perturb
             - self.cfg.camera_perturb
         ).repeat_interleave(self.cfg.n_view, dim=0)
-        camera_positions = camera_positions + camera_perturb
+        camera_positions += camera_perturb
         # sample center perturbations from a normal distribution with mean 0 and std center_perturb
         center_perturb: Float[Tensor, "B 3"] = (
             torch.randn(real_batch_size, 3) * self.cfg.center_perturb
         ).repeat_interleave(self.cfg.n_view, dim=0)
-        center = center + center_perturb
+        center += center_perturb
         # sample up perturbations from a normal distribution with mean 0 and std up_perturb
         up_perturb: Float[Tensor, "B 3"] = (
             torch.randn(real_batch_size, 3) * self.cfg.up_perturb
         ).repeat_interleave(self.cfg.n_view, dim=0)
-        up = up + up_perturb
+        up += up_perturb
 
         # sample light distance from a uniform distribution bounded by light_distance_range
         light_distances: Float[Tensor, "B"] = (

@@ -44,12 +44,12 @@ class MultiviewDiffusionGuidance(BaseModule):
     cfg: Config
 
     def configure(self) -> None:
-        threestudio.info(f"Loading Multiview Diffusion ...")
+        threestudio.info("Loading Multiview Diffusion ...")
 
         self.model = build_model(self.cfg.model_name, ckpt_path=self.cfg.ckpt_path)
         for p in self.model.parameters():
             p.requires_grad_(False)
-        
+
         self.num_train_timesteps = 1000
         min_step_percent = C(self.cfg.min_step_percent, 0, 0)
         max_step_percent = C(self.cfg.max_step_percent, 0, 0)
@@ -59,27 +59,23 @@ class MultiviewDiffusionGuidance(BaseModule):
 
         self.to(self.device)
 
-        threestudio.info(f"Loaded Multiview Diffusion!")
+        threestudio.info("Loaded Multiview Diffusion!")
 
     def get_camera_cond(self, 
             camera: Float[Tensor, "B 4 4"],
             fovy = None,
     ):
-        # Note: the input of threestudio is already blender coordinate system
-        # camera = convert_opengl_to_blender(camera)
-        if self.cfg.camera_condition_type == "rotation": # normalized camera
-            camera = normalize_camera(camera)
-            camera = camera.flatten(start_dim=1)
-        else:
+        if self.cfg.camera_condition_type != "rotation":
             raise NotImplementedError(f"Unknown camera_condition_type={self.cfg.camera_condition_type}")
+        camera = normalize_camera(camera)
+        camera = camera.flatten(start_dim=1)
         return camera
 
     def encode_images(
         self, imgs: Float[Tensor, "B 3 256 256"]
     ) -> Float[Tensor, "B 4 32 32"]:
         imgs = imgs * 2.0 - 1.0
-        latents = self.model.get_first_stage_encoding(self.model.encode_first_stage(imgs))
-        return latents  # [B, 4, 32, 32] Latent space image
+        return self.model.get_first_stage_encoding(self.model.encode_first_stage(imgs))
 
     def forward(
         self,
